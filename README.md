@@ -3,4 +3,4 @@
 
 [![Actions Status](https://github.com/SvetlanaAkaemova/python-project-83/workflows/my_check/badge.svg)](https://github.com/SvetlanaAkaemova/python-project-83/actions)
 
-python-project-83-production-9aea.up.railway.app
+https://python-project-83-production-9aea.up.railway.app
