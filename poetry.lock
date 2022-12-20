@@ -12,6 +12,20 @@ pycodestyle = ">=2.10.0,<2.11.0"
 pyflakes = ">=3.0.0,<3.1.0"
 
 [[package]]
+name = "gunicorn"
+version = "20.1.0"
+description = "WSGI HTTP Server for UNIX"
+category = "main"
+optional = false
+python-versions = ">=3.5"
+
+[package.extras]
+eventlet = ["eventlet (>=0.24.1)"]
+gevent = ["gevent (>=1.4.0)"]
+setproctitle = ["setproctitle"]
+tornado = ["tornado (>=0.2)"]
+
+[[package]]
 name = "mccabe"
 version = "0.7.0"
 description = "McCabe checker, plugin for flake8"
@@ -37,11 +51,12 @@ python-versions = ">=3.6"
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.10"
-content-hash = "4223119b1af4ba25a7e20239e9694be56c32fa09b0c375f64eb7cf0664101101"
+python-versions = "^3.8"
+content-hash = "b5e827101ee6155fc7cbed5380309ff09b7b3b4a0540ce70d7f8201b30c7f5cf"
 
 [metadata.files]
 flake8 = []
+gunicorn = []
 mccabe = []
 pycodestyle = []
 pyflakes = []
