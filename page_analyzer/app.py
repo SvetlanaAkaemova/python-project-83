@@ -1,3 +1,4 @@
+import bs4
 import psycopg2
 import os
 import requests
@@ -13,6 +14,25 @@ app = Flask(__name__)
 load_dotenv()
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 DATABASE_URL = os.getenv('DATABASE_URL')
+
+
+def get_content_of_site(url):
+    get_page = requests.request('GET', url)
+    page_content = get_page.text
+    soup = bs4.BeautifulSoup(page_content, 'html.parser')
+    if soup.select('h1'):
+        h1 = soup.select('h1')[0].text.strip()
+    else:
+        h1 = ''
+    if soup.select('title'):
+        title = soup.select('title')[0].text.strip()
+    else:
+        title = ''
+    if soup.find('meta', {"name": "description"}):
+        content = soup.find('meta', {"name": "description"}).attrs['content']
+    else:
+        content = ''
+    return h1, title, content
 
 
 def get_id(db, dt, name):
@@ -73,13 +93,13 @@ def url_added(id):
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()
     cur.execute(
-        "SELECT id, created_at, status_code FROM url_checks WHERE url_id = {0} ORDER BY id DESC".format(id)
+        "SELECT id, created_at, status_code, h1, title, description FROM url_checks WHERE url_id = {0} ORDER BY id DESC".format(id)
     )
     rows = cur.fetchall()
     list_of_rows = list(map(list, rows))
     check_list = []
     for row in list_of_rows:
-        check_list.append({'id': row[0], 'created_at': row[1].date(), 'status_code': row[2], 'h1': '', 'title': '', 'description': ''})
+        check_list.append({'id': row[0], 'created_at': row[1].date(), 'status_code': row[2], 'h1': row[3], 'title': row[4], 'description': row[5]})
     conn.close()
     return render_template(
         'new_site.html',
@@ -136,11 +156,12 @@ def id_check(id):
     if status_code != 200:
         flash("Произошла ошибка при проверке", "alert alert-danger")
         return redirect(url_for('url_added', id=id))
+    h1, title, content = get_content_of_site(url_name)
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()
     date = datetime.date.today()
     cur.execute(
-        "INSERT INTO url_checks (url_id, created_at, status_code) VALUES ('{0}', '{1}', {2})".format(id, date, status_code)
+        "INSERT INTO url_checks (url_id, created_at, status_code, h1, title, description) VALUES ('{0}', '{1}', {2}, '{3}', '{4}', '{5}')".format(id, date, status_code, h1, title, content)
     )
     conn.commit()
     conn.close()
