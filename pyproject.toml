@@ -1,8 +1,13 @@
 [tool.poetry]
 name = "hexlet-code"
 version = "0.1.0"
-description = ""
+description = "Web application for checking a web page"
 authors = ["svetlana_akaemova <akaemova.sv@mail.ru>"]
+repository = "https://github.com/SvetlanaAkaemova/python-project-83.git"
+classifiers = [
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
 packages = [
     { include = "page_analyzer" },
 ]
