@@ -2,7 +2,7 @@
 name = "beautifulsoup4"
 version = "4.11.2"
 description = "Screen-scraping library"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6.0"
 
@@ -17,7 +17,7 @@ lxml = ["lxml"]
 name = "bs4"
 version = "0.0.1"
 description = "Dummy package for Beautiful Soup"
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -190,7 +190,7 @@ cli = ["click (>=5.0)"]
 name = "soupsieve"
 version = "2.3.2.post1"
 description = "A modern CSS selector implementation for Beautiful Soup."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -237,7 +237,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8.1,<4.0"
-content-hash = "859619c473050108666ca21ae8e63878e223f7dc4d9e5f03150e42c76528efee"
+content-hash = "9cfd8067ffd2fe6fb7c7b3571e24faa9967e1f5c76aedaf040a23dc98b88a65d"
 
 [metadata.files]
 beautifulsoup4 = []
