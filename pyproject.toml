@@ -23,6 +23,7 @@ validators = "^0.20.0"
 [tool.poetry.dev-dependencies]
 flake8 = "^6.0.0"
 bs4 = "^0.0.1"
+beautifulsoup4 = "^4.11.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

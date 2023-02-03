@@ -1,6 +1,6 @@
 [[package]]
 name = "beautifulsoup4"
-version = "4.11.1"
+version = "4.11.2"
 description = "Screen-scraping library"
 category = "dev"
 optional = false
@@ -237,7 +237,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "99070a1c62fbc832b81dc8b16a16311da723681c53a853b025b78266320b5f28"
+content-hash = "8c345c1d63063214bc981d3c8bb8485070650a1ec9f7eb652dc3db7d44da785f"
 
 [metadata.files]
 beautifulsoup4 = []
