@@ -76,7 +76,7 @@ def post_url():
             url_input=url,
             messages=messages
         ), 422
-    if not validators.url(url) and url != '':
+    if not validators.url(url):
         flash("Некорректный URL", "alert alert-danger")
         return render_template(
             'index.html',
