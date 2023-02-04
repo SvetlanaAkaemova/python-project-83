@@ -180,3 +180,8 @@ def id_check(id):
     conn.close()
     flash("Страница успешно проверена", "alert alert-success")
     return redirect(url_for('url_added', id=id))
+
+
+if __name__ == "__main__":
+    app.debug = True
+    app.run()
