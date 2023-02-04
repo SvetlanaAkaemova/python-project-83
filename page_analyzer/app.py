@@ -17,23 +17,18 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 
-def get_content_of_site(url):
+def get_content_of_page(url):
     get_page = requests.request('GET', url)
     page_content = get_page.text
     soup = bs4.BeautifulSoup(page_content, 'html.parser')
+    content_dict = {'h1': '', 'title': '', 'content': ''}
     if soup.select('h1'):
-        h1 = soup.select('h1')[0].text.strip()
-    else:
-        h1 = ''
+        content_dict['h1'] = soup.select('h1')[0].text.strip()
     if soup.select('title'):
-        title = soup.select('title')[0].text.strip()
-    else:
-        title = ''
+        content_dict['title'] = soup.select('title')[0].text.strip()
     if soup.find('meta', {"name": "description"}):
-        content = soup.find('meta', {"name": "description"}).attrs['content']
-    else:
-        content = ''
-    return h1, title, content
+        content_dict['content'] = soup.find('meta', {"name": "description"}).attrs['content']
+    return content_dict
 
 
 def get_id(db, dt, name):
@@ -112,7 +107,7 @@ def url_added(id):
         check_list.append({'id': row[0], 'created_at': row[1].date(), 'status_code': row[2], 'h1': row[3], 'title': row[4], 'description': row[5]})
     conn.close()
     return render_template(
-        'site.html',
+        'page.html',
         messages=messages,
         url_name=url_name,
         url_id=id,
@@ -141,7 +136,7 @@ def urls_get():
         urls_list.append({'id': row[0], 'name': row[1], 'check_data': row[2], 'response_code': row[3]})
     conn.close()
     return render_template(
-        'sites.html',
+        'pages.html',
         urls_list=urls_list
     )
 
@@ -162,7 +157,7 @@ def id_check(id):
     except (ConnectionError, HTTPError):
         flash("Произошла ошибка при проверке", "alert alert-danger")
         return render_template(
-            'site.html',
+            'page.html',
             messages=get_flashed_messages(with_categories=True)
         )
 
@@ -170,15 +165,15 @@ def id_check(id):
     if status_code != 200:
         flash("Произошла ошибка при проверке", "alert alert-danger")
         return render_template(
-            'site.html',
+            'page.html',
             messages=get_flashed_messages(with_categories=True)
         )
-    h1, title, content = get_content_of_site(url_name)
+    content_dict = get_content_of_page(url_name)
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()
     date = datetime.date.today()
     cur.execute(
-        "INSERT INTO url_checks (url_id, created_at, status_code, h1, title, description) VALUES ('{0}', '{1}', {2}, '{3}', '{4}', '{5}')".format(id, date, status_code, h1, title, content)
+        "INSERT INTO url_checks (url_id, created_at, status_code, h1, title, description) VALUES ('{0}', '{1}', {2}, '{3}', '{4}', '{5}')".format(id, date, status_code, content_dict['h1'], content_dict['title'], content_dict['content'])
     )
     conn.commit()
     conn.close()
