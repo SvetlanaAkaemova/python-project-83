@@ -75,14 +75,14 @@ def post_url():
             'index.html',
             url_input=url,
             messages=messages
-        )
+        ), 422
     if not validators.url(url) and url != '':
         flash("Некорректный URL", "alert alert-danger")
         return render_template(
             'index.html',
             url_input=url,
             messages=messages
-        )
+        ), 422
     url_id_in_db = get_id(DATABASE_URL, 'urls', url)
     if url_id_in_db is None:
         conn = create_connection(DATABASE_URL)
