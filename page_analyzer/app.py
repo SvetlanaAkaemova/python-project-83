@@ -7,6 +7,7 @@ import validators
 from flask import Flask, request, url_for, get_flashed_messages, flash, redirect, render_template
 from dotenv import load_dotenv
 from requests import ConnectionError, HTTPError
+from urllib.parse import urlparse
 
 
 app = Flask(__name__)
@@ -69,18 +70,19 @@ def post_url():
             url_input=url,
             messages=get_flashed_messages(with_categories=True)
         ), 422
-
-    url_id_in_db = get_id(DATABASE_URL, 'urls', url)
+    url_for_norm = urlparse(url)
+    norm_url = url_for_norm.scheme + '://' + url_for_norm.netloc
+    url_id_in_db = get_id(DATABASE_URL, 'urls', norm_url)
     if url_id_in_db is None:
         conn = psycopg2.connect(DATABASE_URL)
         cur = conn.cursor()
         date = datetime.date.today()
         cur.execute(
-            "INSERT INTO urls (name, created_at) VALUES ('{0}', '{1}')".format(url, date)
+            "INSERT INTO urls (name, created_at) VALUES ('{0}', '{1}')".format(norm_url, date)
         )
         conn.commit()
         conn.close()
-        url_id = get_id(DATABASE_URL, 'urls', url)
+        url_id = get_id(DATABASE_URL, 'urls', norm_url)
         flash("Страница успешно добавлена", "alert alert-success")
         return redirect(url_for('url_added', id=url_id))
     else:
