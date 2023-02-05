@@ -24,11 +24,11 @@ def get_content_of_page(url):
     soup = bs4.BeautifulSoup(page_content, 'html.parser')
     content_dict = {'h1': '', 'title': '', 'content': ''}
     if soup.select('h1'):
-        content_dict['h1'] = soup.select('h1')[0].text.strip()
+        content_dict['h1'] = str(soup.select('h1')[0].text.strip())
     if soup.select('title'):
-        content_dict['title'] = soup.select('title')[0].text.strip()
+        content_dict['title'] = str(soup.select('title')[0].text.strip())
     if soup.find('meta', {"name": "description"}):
-        content_dict['content'] = soup.find('meta', {"name": "description"}).attrs['content']
+        content_dict['content'] = str(soup.find('meta', {"name": "description"}).attrs['content'])
     return content_dict
 
 
@@ -157,32 +157,24 @@ def id_check(id):
         response = requests.get(url_name)
     except (ConnectionError, HTTPError):
         flash("Произошла ошибка при проверке", "alert alert-danger")
-        return render_template(
-            'page.html',
-            messages=get_flashed_messages(with_categories=True)
-        )
+        return redirect(url_for('url_added', id=id))
 
     status_code = response.status_code
     if status_code != 200:
         flash("Произошла ошибка при проверке", "alert alert-danger")
-        return render_template(
-            'page.html',
-            messages=get_flashed_messages(with_categories=True)
-        )
+        return redirect(url_for('url_added', id=id))
+
     content_dict = get_content_of_page(url_name)
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()
     date = datetime.date.today()
     cur.execute(
-        "INSERT INTO url_checks (url_id, created_at, status_code, h1, title, description) VALUES ({0}, {1}, {2}, {3}, {4}, {5})".format(id, date, status_code, content_dict['h1'], content_dict['title'], content_dict['content'])
+        "INSERT INTO url_checks (url_id, created_at, status_code, h1, title, description) VALUES ({0}, '{1}', {2}, '{3}', '{4}', '{5}')".format(id, date, status_code, content_dict['h1'], content_dict['title'], content_dict['content'])
     )
     conn.commit()
     conn.close()
     flash("Страница успешно проверена", "alert alert-success")
-    return render_template(
-        'page.html',
-        messages=get_flashed_messages(with_categories=True)
-    )
+    return redirect(url_for('url_added', id=id))
 
 
 if __name__ == "__main__":
