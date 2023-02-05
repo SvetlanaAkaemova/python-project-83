@@ -24,11 +24,11 @@ def get_content_of_page(url):
     soup = bs4.BeautifulSoup(page_content, 'html.parser')
     content_dict = {'h1': '', 'title': '', 'content': ''}
     if soup.select('h1'):
-        content_dict['h1'] = str(soup.select('h1')[0].text.strip())
+        content_dict['h1'] = soup.select('h1')[0].text.strip()
     if soup.select('title'):
-        content_dict['title'] = str(soup.select('title')[0].text.strip())
+        content_dict['title'] = soup.select('title')[0].text.strip()
     if soup.find('meta', {"name": "description"}):
-        content_dict['content'] = str(soup.find('meta', {"name": "description"}).attrs['content'])
+        content_dict['content'] = soup.find('meta', {"name": "description"}).attrs['content']
     return content_dict
 
 
