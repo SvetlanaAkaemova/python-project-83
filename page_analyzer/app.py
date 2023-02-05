@@ -6,7 +6,7 @@ import datetime
 import validators
 from flask import Flask, request, url_for, get_flashed_messages, flash, redirect, render_template
 from dotenv import load_dotenv
-from requests import ConnectionError, HTTPError
+from requests import ConnectionError, HTTPError, SyntaxError
 
 
 app = Flask(__name__)
@@ -155,7 +155,7 @@ def id_check(id):
     url_name = [x[0] for x in result][0]
     try:
         response = requests.get(url_name)
-    except (ConnectionError, HTTPError):
+    except (ConnectionError, HTTPError, SyntaxError):
         flash("Произошла ошибка при проверке", "alert alert-danger")
         return render_template(
             'page.html',
