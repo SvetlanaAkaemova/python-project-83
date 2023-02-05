@@ -6,7 +6,6 @@ CREATE TABLE urls (
   created_at timestamp
 );
 
-
 CREATE TABLE url_checks (
   id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   url_id bigint REFERENCES urls(id),
