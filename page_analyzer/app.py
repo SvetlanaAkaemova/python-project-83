@@ -179,7 +179,10 @@ def id_check(id):
     conn.commit()
     conn.close()
     flash("Страница успешно проверена", "alert alert-success")
-    return redirect(url_for('url_added', id=id))
+    return render_template(
+        'page.html',
+        messages=get_flashed_messages(with_categories=True)
+    )
 
 
 if __name__ == "__main__":
