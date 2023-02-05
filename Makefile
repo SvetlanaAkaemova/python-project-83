@@ -1,4 +1,4 @@
-all: db-create schema-load
+all: start db-reset schema-load
 
 schema-load:
 	psql python-project-83 < database.sql
@@ -30,7 +30,7 @@ check: selfcheck test lint
 build:
 	poetry build
 
-PORT ?= 5432
+PORT ?= 8000
 start:
 	poetry run gunicorn -w 5 -b 0.0.0.0:$(PORT) page_analyzer:app
 
