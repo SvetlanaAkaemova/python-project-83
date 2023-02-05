@@ -1,4 +1,4 @@
-all: start db-create schema-load
+all: start db-reset schema-load
 
 schema-load:
 	psql python-project-83 < database.sql
