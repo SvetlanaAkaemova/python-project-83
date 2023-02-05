@@ -174,7 +174,7 @@ def id_check(id):
     cur = conn.cursor()
     date = datetime.date.today()
     cur.execute(
-        "INSERT INTO url_checks (url_id, created_at, status_code, h1, title, description) VALUES ('{0}', '{1}', {2}, '{3}', '{4}', '{5}')".format(id, date, status_code, content_dict['h1'], content_dict['title'], content_dict['content'])
+        'INSERT INTO url_checks (url_id, created_at, status_code, h1, title, description) VALUES ("{0}", "{1}", {2}, "{3}", "{4}", "{5}")'.format(id, date, status_code, content_dict['h1'], content_dict['title'], content_dict['content'])
     )
     conn.commit()
     conn.close()
