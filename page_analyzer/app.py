@@ -19,6 +19,10 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 
+def get_connection():
+    return psycopg2.connect(DATABASE_URL)
+
+
 def get_content_of_page(url):
     get_page = requests.request('GET', url)
     page_content = get_page.text
@@ -31,21 +35,6 @@ def get_content_of_page(url):
     if soup.find('meta', {"name": "description"}):
         content_dict['content'] = soup.find('meta', {"name": "description"}).attrs['content']
     return content_dict
-
-
-def get_id(db, dt, name):
-    conn = psycopg2.connect(db)
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT id FROM {0}
-                WHERE name = '{1}'""".format(dt, name))
-            result = cur.fetchall()
-            id = [x[0] for x in result]
-    conn.close()
-    if id == []:
-        return None
-    return id[0]
 
 
 @app.route('/')
@@ -73,29 +62,31 @@ def post_url():
         ), 422
     url_for_norm = urlparse(url)
     norm_url = url_for_norm.scheme + '://' + url_for_norm.netloc
-    url_id_in_db = get_id(DATABASE_URL, 'urls', norm_url)
-    if url_id_in_db is None:
-        conn = psycopg2.connect(DATABASE_URL)
-        with conn:
-            with conn.cursor() as cur:
-                date = datetime.date.today()
-                cur.execute("""
-                    INSERT INTO urls (name, created_at)
-                    VALUES ('{0}', '{1}')""".format(norm_url, date))
-                conn.commit()
-        conn.close()
-        url_id = get_id(DATABASE_URL, 'urls', norm_url)
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cur:
+            cur.execute("""
+                SELECT id FROM urls
+                WHERE name = '{0}'""".format(norm_url))
+            result = cur.fetchone()
+    if result:
+        flash("Страница уже существует", "alert alert-info")
+        return redirect(url_for('url_added', id=result.id))
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            date = datetime.date.today()
+            cur.execute("""
+                INSERT INTO urls (name, created_at)
+                VALUES ('{0}', '{1}') RETURNING id""".format(norm_url, date))
+            url_id = cur.fetchone()[0]
+            conn.commit()
         flash("Страница успешно добавлена", "alert alert-success")
         return redirect(url_for('url_added', id=url_id))
-    else:
-        flash("Страница уже существует", "alert alert-info")
-        return redirect(url_for('url_added', id=url_id_in_db))
 
 
 @app.route('/urls/<id>')
 def url_added(id):
-    conn = psycopg2.connect(DATABASE_URL)
-    with conn:
+    with get_connection() as conn:
         with conn.cursor() as cur:
             messages = get_flashed_messages(with_categories=True)
             cur.execute("""
@@ -103,9 +94,8 @@ def url_added(id):
                 FROM urls
                 WHERE id = {0}""".format(id))
             url_name, url_created_at = cur.fetchone()
-    conn.close()
-    conn = psycopg2.connect(DATABASE_URL)
-    with conn:
+
+    with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cur:
             cur.execute("""
                 SELECT id, created_at, status_code, h1, title, description
@@ -113,7 +103,6 @@ def url_added(id):
                 WHERE url_id = {0}
                 ORDER BY id DESC""".format(id))
             rows = cur.fetchall()
-    conn.close()
     return render_template(
         'page.html',
         messages=messages,
@@ -126,8 +115,7 @@ def url_added(id):
 
 @app.get('/urls')
 def urls_get():
-    conn = psycopg2.connect(DATABASE_URL)
-    with conn:
+    with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cur:
             cur.execute("""
                 SELECT
@@ -137,7 +125,6 @@ def urls_get():
                 GROUP BY urls.id, url_checks.status_code
                 ORDER BY urls.id DESC""")
             rows = cur.fetchall()
-    conn.close()
     return render_template(
         'pages.html',
         urls_list=rows
@@ -146,31 +133,25 @@ def urls_get():
 
 @app.route('/urls/<id>/checks', methods=['POST'])
 def id_check(id):
-    conn = psycopg2.connect(DATABASE_URL)
-    with conn:
-        with conn.cursor() as cur:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cur:
             cur.execute("""
                 SELECT name
                 FROM urls
                 WHERE id = {0}""".format(id))
-            result = cur.fetchall()
-    conn.close()
+            result = cur.fetchone()
 
-    url_name = [x[0] for x in result][0]
+    url_name = result.name
     try:
         response = requests.get(url_name)
+        response.raise_for_status()
     except (ConnectionError, HTTPError):
         flash("Произошла ошибка при проверке", "alert alert-danger")
         return redirect(url_for('url_added', id=id))
 
     status_code = response.status_code
-    if status_code != 200:
-        flash("Произошла ошибка при проверке", "alert alert-danger")
-        return redirect(url_for('url_added', id=id))
-
     content_dict = get_content_of_page(url_name)
-    conn = psycopg2.connect(DATABASE_URL)
-    with conn:
+    with get_connection() as conn:
         with conn.cursor() as cur:
             date = datetime.date.today()
             cur.execute("""
@@ -178,6 +159,5 @@ def id_check(id):
                 VALUES ({0}, '{1}', {2}, '{3}', '{4}', '{5}')""".format(
                 id, date, status_code, content_dict['h1'], content_dict['title'], content_dict['content']))
             conn.commit()
-    conn.close()
     flash("Страница успешно проверена", "alert alert-success")
     return redirect(url_for('url_added', id=id))

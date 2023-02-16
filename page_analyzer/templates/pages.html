@@ -19,7 +19,7 @@
 
           <td>{{ url.id }}</td>
           <td>
-            <a href="/urls/{{ url['id'] }}">
+            <a href="{{ url_for('url_added', id=url.id) }}">
               {{ url.name }}
             </a>
           </td>
