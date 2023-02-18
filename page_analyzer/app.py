@@ -5,7 +5,7 @@ import os
 import requests
 import datetime
 import validators
-from flask import Flask, request, url_for, get_flashed_messages, flash, redirect, render_template
+from flask import Flask, request, url_for, flash, redirect, render_template
 from dotenv import load_dotenv
 from requests import ConnectionError, HTTPError
 from urllib.parse import urlparse
@@ -23,17 +23,23 @@ def get_connection():
     return psycopg2.connect(DATABASE_URL)
 
 
-def get_content_of_page(url):
-    get_page = requests.request('GET', url)
-    page_content = get_page.text
-    soup = bs4.BeautifulSoup(page_content, 'html.parser')
-    content_dict = dict()
-    content_dict['h1'] = soup.find('h1').text.strip() if soup.find('h1') else ''
-    content_dict['title'] = soup.find('title').text.strip() if soup.find('title') else ''
-    content_dict['content'] = soup.find(
+def validate_url(url):
+    errors = []
+    if url == '':
+        errors.extend(["Некорректный URL", "URL обязателен"])
+    elif not validators.url(url):
+        errors.append("Некорректный URL")
+    return errors
+
+
+def get_content_of_page(page_text):
+    soup = bs4.BeautifulSoup(page_text, 'html.parser')
+    h1 = soup.find('h1').get_text() if soup.find('h1') else ''
+    title = soup.find('title').get_text() if soup.find('title') else ''
+    meta = soup.find(
         'meta', {"name": "description"}).attrs['content'] if soup.find(
         'meta', {"name": "description"}) else ''
-    return content_dict
+    return h1, title, meta
 
 
 @app.route('/')
@@ -44,28 +50,24 @@ def index():
 @app.post('/urls')
 def post_url():
     url = request.form.get('url')
-    if url == '':
-        flash("Некорректный URL", "alert alert-danger")
-        flash("URL обязателен", "alert alert-danger")
+    errors = validate_url(url)
+    if errors:
+        if len(errors) == 2:
+            flash("Некорректный URL", "alert alert-danger")
+            flash("URL обязателен", "alert alert-danger")
+        elif len(errors) == 1:
+            flash("Некорректный URL", "alert alert-danger")
         return render_template(
             'index.html',
             url_input=url,
-            messages=get_flashed_messages(with_categories=True)
         ), 422
-    elif not validators.url(url):
-        flash("Некорректный URL", "alert alert-danger")
-        return render_template(
-            'index.html',
-            url_input=url,
-            messages=get_flashed_messages(with_categories=True)
-        ), 422
-    url_for_norm = urlparse(url)
-    norm_url = url_for_norm.scheme + '://' + url_for_norm.netloc
+    parsed_url = urlparse(url)
+    valid_url = parsed_url.scheme + '://' + parsed_url.netloc
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cur:
             cur.execute("""
                 SELECT id FROM urls
-                WHERE name = '{0}'""".format(norm_url))
+                WHERE name = '{0}'""".format(valid_url))
             result = cur.fetchone()
     if result:
         flash("Страница уже существует", "alert alert-info")
@@ -76,7 +78,7 @@ def post_url():
             date = datetime.date.today()
             cur.execute("""
                 INSERT INTO urls (name, created_at)
-                VALUES ('{0}', '{1}') RETURNING id""".format(norm_url, date))
+                VALUES ('{0}', '{1}') RETURNING id""".format(valid_url, date))
             url_id = cur.fetchone()[0]
             conn.commit()
         flash("Страница успешно добавлена", "alert alert-success")
@@ -87,7 +89,6 @@ def post_url():
 def url_added(id):
     with get_connection() as conn:
         with conn.cursor() as cur:
-            messages = get_flashed_messages(with_categories=True)
             cur.execute("""
                 SELECT name, created_at
                 FROM urls
@@ -104,11 +105,10 @@ def url_added(id):
             rows = cur.fetchall()
     return render_template(
         'page.html',
-        messages=messages,
         url_name=url_name,
         url_id=id,
         url_created_at=url_created_at.date(),
-        check_list=rows
+        checks=rows
     )
 
 
@@ -126,7 +126,7 @@ def urls_get():
             rows = cur.fetchall()
     return render_template(
         'pages.html',
-        urls_list=rows
+        checks=rows
     )
 
 
@@ -149,14 +149,14 @@ def id_check(id):
         return redirect(url_for('url_added', id=id))
 
     status_code = response.status_code
-    content_dict = get_content_of_page(url_name)
+    h1, title, meta = get_content_of_page(response.text)
     with get_connection() as conn:
         with conn.cursor() as cur:
             date = datetime.date.today()
             cur.execute("""
                 INSERT INTO url_checks (url_id, created_at, status_code, h1, title, description)
                 VALUES ({0}, '{1}', {2}, '{3}', '{4}', '{5}')""".format(
-                id, date, status_code, content_dict['h1'], content_dict['title'], content_dict['content']))
+                id, date, status_code, h1, title, meta))
             conn.commit()
     flash("Страница успешно проверена", "alert alert-success")
     return redirect(url_for('url_added', id=id))
