@@ -4,11 +4,11 @@ import psycopg2.extras
 import os
 import requests
 import datetime
-import validators
 from flask import Flask, request, url_for, flash, redirect, render_template
 from dotenv import load_dotenv
 from requests import ConnectionError, HTTPError
 from urllib.parse import urlparse
+from page_analyzer.url import validate_url
 
 
 app = Flask(__name__)
@@ -21,15 +21,6 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
-
-
-def validate_url(url):
-    errors = []
-    if url == '':
-        errors.extend(["Некорректный URL", "URL обязателен"])
-    elif not validators.url(url):
-        errors.append("Некорректный URL")
-    return errors
 
 
 def get_content_of_page(page_text):
@@ -52,11 +43,8 @@ def post_url():
     url = request.form.get('url')
     errors = validate_url(url)
     if errors:
-        if len(errors) == 2:
-            flash("Некорректный URL", "alert alert-danger")
-            flash("URL обязателен", "alert alert-danger")
-        elif len(errors) == 1:
-            flash("Некорректный URL", "alert alert-danger")
+        for error in errors:
+            flash(error, "alert alert-danger")
         return render_template(
             'index.html',
             url_input=url,
@@ -67,18 +55,18 @@ def post_url():
         with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cur:
             cur.execute("""
                 SELECT id FROM urls
-                WHERE name = '{0}'""".format(valid_url))
+                WHERE name = %s""", [valid_url])
             result = cur.fetchone()
-    if result:
-        flash("Страница уже существует", "alert alert-info")
-        return redirect(url_for('url_added', id=result.id))
+            if result:
+                flash("Страница уже существует", "alert alert-info")
+                return redirect(url_for('url_added', id=result.id))
 
     with get_connection() as conn:
         with conn.cursor() as cur:
             date = datetime.date.today()
             cur.execute("""
                 INSERT INTO urls (name, created_at)
-                VALUES ('{0}', '{1}') RETURNING id""".format(valid_url, date))
+                VALUES (%s, %s) RETURNING id""", [valid_url, date])
             url_id = cur.fetchone()[0]
             conn.commit()
         flash("Страница успешно добавлена", "alert alert-success")
@@ -92,7 +80,7 @@ def url_added(id):
             cur.execute("""
                 SELECT name, created_at
                 FROM urls
-                WHERE id = {0}""".format(id))
+                WHERE id = %s""", [id])
             url_name, url_created_at = cur.fetchone()
 
     with get_connection() as conn:
@@ -100,8 +88,8 @@ def url_added(id):
             cur.execute("""
                 SELECT id, created_at, status_code, h1, title, description
                 FROM url_checks
-                WHERE url_id = {0}
-                ORDER BY id DESC""".format(id))
+                WHERE url_id = %s
+                ORDER BY id DESC""", [id])
             rows = cur.fetchall()
     return render_template(
         'page.html',
@@ -137,7 +125,7 @@ def id_check(id):
             cur.execute("""
                 SELECT name
                 FROM urls
-                WHERE id = {0}""".format(id))
+                WHERE id = %s""", [id])
             result = cur.fetchone()
 
     url_name = result.name
@@ -155,8 +143,8 @@ def id_check(id):
             date = datetime.date.today()
             cur.execute("""
                 INSERT INTO url_checks (url_id, created_at, status_code, h1, title, description)
-                VALUES ({0}, '{1}', {2}, '{3}', '{4}', '{5}')""".format(
-                id, date, status_code, h1, title, meta))
+                VALUES (%s, %s, %s, %s, %s, %s)""", [
+                id, date, status_code, h1, title, meta])
             conn.commit()
     flash("Страница успешно проверена", "alert alert-success")
     return redirect(url_for('url_added', id=id))
