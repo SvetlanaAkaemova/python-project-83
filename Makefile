@@ -28,7 +28,7 @@ selfcheck:
 check: selfcheck test lint
 
 build:
-	poetry build
+	./build.sh
 
 PORT ?= 8000
 start:
